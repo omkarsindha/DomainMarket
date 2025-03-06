@@ -1,15 +1,15 @@
-import { Text, View } from "react-native";
+import 'react-native-gesture-handler'; // Required for navigation
+import React from 'react';
+import { registerRootComponent } from 'expo';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AppNavigator from './navigation/AppNavigator.js'
 
-export default function Index() {
+const App = () => {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Welcome to Domain Market</Text>
-    </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppNavigator />
+    </GestureHandlerRootView>
   );
-}
+};
+
+registerRootComponent(App);
