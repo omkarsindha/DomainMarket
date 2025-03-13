@@ -1,121 +1,139 @@
-import React, { useState } from "react";
-import {
-  View,
-  FlatList,
-  Text,
-  TextInput,
-  RefreshControl,
-  TouchableOpacity,
-  StyleSheet,
-  Animated
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient"; 
-import { Card } from "react-native-paper"; 
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, ActivityIndicator, FlatList } from 'react-native';
+import axios from 'axios';
 
-const placeholderDomains = [
-  { id: "1", name: "trendy.io", price: "$1,500" },
-  { id: "2", name: "startup.net", price: "$2,800" },
-  { id: "3", name: "nextbigthing.com", price: "$3,200" },
-  { id: "4", name: "futuretech.ai", price: "$1,900" },
-  { id: "5", name: "fastmoney.xyz", price: "$900" },
-  { id: "6", name: "businessgrowth.co", price: "$1,200" },
-  { id: "7", name: "investpro.com", price: "$4,500" },
-  { id: "8", name: "web3explore.io", price: "$3,000" },
-];
+const API_URL = "http://10.0.0.138:8000"; // Your backend IP
 
 const DomainListScreen = () => {
-  const [searchQuery, setSearchQuery] = useState(""); 
-  const [loading, setLoading] = useState(false); 
+  const [domain, setDomain] = useState('');
+  const [checkResult, setCheckResult] = useState(null);
+  const [trendingTlds, setTrendingTlds] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  
-  const filteredDomains = placeholderDomains.filter(domain =>
-    domain.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Fetch trending TLDs when the page loads
+  useEffect(() => {
+    fetchTrendingTlds();
+  }, []);
 
-  
-  const handleRefresh = () => {
+  // Fetch trending TLDs
+  const fetchTrendingTlds = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    setError(null); 
+    setCheckResult(null); 
+
+    try {
+      const response = await axios.get(`${API_URL}/domains/trending_tlds`);
+      if (response.data && Array.isArray(response.data)) {
+        setTrendingTlds(response.data);
+      } else {
+        setError('Failed to fetch trending TLDs.');
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to fetch trending TLDs. Please try again.');
+    }
+    setLoading(false);
   };
+  // const checkDomainAvailability = async () => {
+  //   if (!domain.trim()) {
+  //     setError("Please enter a domain name.");
+  //     return;
+  //   }
+
+  //   setLoading(true);
+  //   setError(null);  
+  //   setCheckResult(null);  
+
+  //   try {
+  //     const response = await axios.get(`${API_URL}/domains/check`, {
+  //       params: { domains: [domain] },
+  //     });
+
+  //     if (response.data.error) {
+  //       setError(response.data.error);
+  //     } else {
+  //       setCheckResult(`${domain} availability: ${JSON.stringify(response.data[domain], null, 2)}`);
+  //     }
+  //   } catch (err) {
+  //     console.error('Error fetching data:', err);
+  //     setError('Failed to fetch domain data. Please try again.');
+  //   }
+  //   setLoading(false);
+  // };
+  const checkDomainAvailability = async () => {
+    if (!domain.trim()) {
+      setError("Please enter a domain name.");
+      return;
+    }
+  
+    setLoading(true);
+    setError(null);  
+    setCheckResult(null);  
+  
+    try {
+      const response = await axios.get(`${API_URL}/domains/check`, {
+        params: { domains: [domain] },
+      });
+  
+      // Debugging log: Check the full API response
+      console.log("API Response:", response.data);  // Log the entire response to inspect
+  
+      // Inspect if the domain's availability data is present in the response
+      if (response.data && response.data[domain] !== undefined) {
+        const domainAvailability = response.data[domain];
+        setCheckResult(`${domain} availability: ${domainAvailability ? 'Available' : 'Not Available'}`);
+      } else {
+        setError('No availability data found for this domain.');
+      }
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to fetch domain data. Please try again.');
+    }
+    setLoading(false);
+  };
+  
+  
+  
+  
 
   return (
-    <LinearGradient colors={["#ffdead", "#f5fffa"]} style={styles.gradientBackground}>
-      <View style={styles.container}>
-        
-        <TextInput
-          style={styles.searchBar}
-          placeholder="🔍 Search domains..."
-          placeholderTextColor="black"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+    <View style={{ padding: 20 }}>
+      {/* Domain Search and Availability Check Section */}
+      <Text>Enter Domain Name to Check Availability:</Text>
+      <TextInput 
+        value={domain} 
+        onChangeText={setDomain} 
+        placeholder="example.com" 
+        style={{ borderWidth: 1, padding: 10, marginVertical: 10 }}
+      />
+      <Button title="Check Availability" onPress={checkDomainAvailability} />
 
-       
+      {loading && <ActivityIndicator size="large" color="#0000ff" />}
+      {checkResult && <Text style={{ marginTop: 20 }}>{checkResult}</Text>}
+      {error && <Text style={{ color: 'red', marginTop: 20 }}>{error}</Text>}
+
+      {/* Trending TLDs Section */}
+      <Text style={{ marginTop: 30 }}>Trending Top-Level Domains:</Text>
+      {loading && !checkResult && <ActivityIndicator size="large" color="#0000ff" />}
+      
+      {trendingTlds.length > 0 && (
         <FlatList
-          data={filteredDomains}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item, index }) => <DomainCard item={item} index={index} />}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor="white" />}
-          ListEmptyComponent={!loading && <Text style={styles.emptyText}>No domains found</Text>}
+          data={trendingTlds}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={{ marginVertical: 5 }}>
+              <Text>{item}</Text>
+            </View>
+          )}
         />
-      </View>
-    </LinearGradient>
+      )}
+
+      {!loading && trendingTlds.length === 0 && !checkResult && (
+        <Text>No trending domains available.</Text>
+      )}
+    </View>
   );
 };
-
-
-const DomainCard = ({ item, index }) => {
-  const fadeAnim = new Animated.Value(0); 
-  Animated.timing(fadeAnim, {
-    toValue: 1,
-    duration: 500,
-    delay: index * 100, 
-    useNativeDriver: true,
-  }).start();
-
-  return (
-    <Animated.View style={[styles.animatedContainer, { opacity: fadeAnim }]}>
-      <TouchableOpacity activeOpacity={0.7} onPress={() => alert(`Selected: ${item.name}`)}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text style={styles.domainName}>{item.name}</Text>
-            <Text style={styles.domainPrice}>{item.price}</Text>
-          </Card.Content>
-        </Card>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
-
-
-const styles = StyleSheet.create({
-  gradientBackground: { flex: 1 },
-  container: { flex: 1, padding: 16 },
-  searchBar: {
-    padding: 14,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    borderRadius: 20,
-    marginBottom: 12,
-    color: "white",
-    fontSize: 16,
-  },
-  animatedContainer: { marginBottom: 10 },
-  card: {
-    backgroundColor: "#fffafa",
-    borderRadius: 12,
-    padding: 10,
-    elevation: 4, 
-    shadowColor: "#000", 
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    
-  },
-  domainName: { fontSize: 20, fontWeight: "bold", color: "#333" },
-  domainPrice: { fontSize: 14, color: "green" },
-  emptyText: { textAlign: "center", marginTop: 20, fontSize: 16, color: "white" },
-});
 
 export default DomainListScreen;
