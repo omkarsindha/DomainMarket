@@ -8,10 +8,12 @@ const Stack = createStackNavigator();
 
 const AppNavigator = () => {
   return (
-    <Stack.Navigator initialRouteName="Domain" screenOptions={{ headerShown: false }}>
-      {/* <Stack.Screen name="Login" component={LoginScreen} /> */}
-      <Stack.Screen name="Domain" component={DomainListScreen} />
-    </Stack.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Domain" screenOptions={{ headerShown: false }}>
+        {/* <Stack.Screen name="Login" component={LoginScreen} /> */}
+        <Stack.Screen name="Domain" component={DomainListScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
