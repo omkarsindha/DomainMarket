@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   View,
@@ -10,13 +11,14 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
-const LoginScreen = ({ navigation }) => {
+const SignUpScreen = ({ navigation }) => {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    console.log('Logging in with:', email, password);
+  const handleSignUp = () => {
+    console.log('Signing up with:', firstName, lastName, email, password);
   };
 
   return (
@@ -32,9 +34,20 @@ const LoginScreen = ({ navigation }) => {
           resizeMode="contain"
         />
 
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+      <Text style={styles.title}>Create an Account</Text>
+      <Text style={styles.subtitle}>Sign up to get started</Text>
 
+      <View style={styles.inputContainer}>
+          <Ionicons name="person-outline" size={20} color="#666" style={styles.icon} />
+          <TextInput
+            style={styles.input}
+            placeholder="Username"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            placeholderTextColor="#aaa"
+          />
+        </View>
         <View style={styles.inputContainer}>
           <Ionicons name="mail-outline" size={20} color="#666" style={styles.icon} />
           <TextInput
@@ -72,18 +85,16 @@ const LoginScreen = ({ navigation }) => {
             styles.button,
             pressed && styles.buttonPressed
           ]}
-          onPress={handleLogin}
+          onPress={handleSignUp}
         >
-          <Text style={styles.buttonText}>Login</Text>
+          <Text style={styles.buttonText}>Sign Up</Text>
         </TouchableOpacity>
 
   
         <View style={styles.footer}>
-          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.linkText}>Forgot Password?</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-            <Text style={styles.linkText}>Create Account</Text>
+          <Text style={{ color: '#d3d9d4', fontSize: 14 }}>Already have an account?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.linkText}> Login</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -188,4 +199,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default SignUpScreen;
