@@ -38,7 +38,7 @@ const LandingScreen = ({ navigation }) => {
 
   return (
     <LinearGradient colors={['#000000', '#0b0c10']} style={styles.container}>
-      {/* Left Static Wave */}
+    
       <Animated.View style={{ position: 'absolute', left: 20, top: wavePosition, opacity: contentAnim }}>
         <Svg height={200} width={150} viewBox="0 0 100 100">
           <Path
