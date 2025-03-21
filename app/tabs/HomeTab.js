@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Footer from "../Components/Footer";
-const HomeScreen = ({ navigation }) => {
+const HomeTab = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState("domain");
 
   return (
@@ -17,13 +17,13 @@ const HomeScreen = ({ navigation }) => {
       colors={["#0b0c10", "#0b0c10", "#1f2833"]}
       style={styles.container}
     >
-      <View style={styles.searchContainer}>
+      {/* <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search domains..."
           placeholderTextColor="#c5c6c7"
         />
-      </View>
+      </View> */}
 
       {/* ScrollView for domain cards
       <ScrollView 
@@ -114,4 +114,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default HomeTab;
