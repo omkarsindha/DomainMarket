@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,48 +6,89 @@ import {
   TextInput,
   StyleSheet,
   FlatList,
-  RefreshControl,
+  ActivityIndicator
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import axios from 'axios';
 
-const placeholderDomains = [
-  { id: "1", name: "trendy.io", price: "$1,500" },
-  { id: "2", name: "startup.net", price: "$2,800" },
-  { id: "3", name: "nextbigthing.com", price: "$3,200" },
-  { id: "4", name: "futuretech.ai", price: "$1,900" },
-  { id: "5", name: "fastmoney.xyz", price: "$900" },
-  { id: "6", name: "businessgrowth.co", price: "$1,200" },
-  { id: "7", name: "investpro.com", price: "$4,500" },
-  { id: "8", name: "web3explore.io", price: "$3,000" },
-];
+const API_URL = "http://10.48.14.13:8000"; // Your backend API URL
+
+// A function to manually provide the token
+const getToken = () => {
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJEZXZhcnNoIiwiZXhwIjoxNzQzMjkyNzA2fQ.BsBJ_4d1Crnrtlvq5Ryroxerfh1mFrzS6lZ_fdTcxX0'; // Replace with your token
+};
 
 const DomainCard = ({ item }) => (
   <View style={styles.domainCard}>
-    <Text style={styles.domainName}>{item.name}</Text>
-    <Text style={styles.salePrice}>{item.price}</Text>
+    <Text style={styles.domainName}>{item.domain}</Text>
+    <Text style={styles.salePrice}>Regular Price: ${item.regular_price}</Text>
+    <Text style={styles.salePrice}>Sale Price: ${item.sale_price}</Text>
+    <Text style={styles.salePrice}>Discount: {item.sale_percentage}% off</Text>
   </View>
 );
 
 const SearchTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [checkResult, setCheckResult] = useState(null);
+  const [trendingTlds, setTrendingTlds] = useState([]);
+  const [suggestedDomains, setSuggestedDomains] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const filteredDomains = placeholderDomains.filter((domain) =>
-    domain.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchTrendingTlds();
+  }, []);
 
-  const handleRefresh = () => {
+  // Fetch trending TLDs
+  const fetchTrendingTlds = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    setError(null);
+
+    try {
+      const response = await axios.get(`${API_URL}/domains/trending_tlds`, {
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+      setTrendingTlds(response.data || []);
+    } catch (err) {
+      setError('Failed to fetch trending TLDs.');
+    }
+    setLoading(false);
+  };
+
+  // Search domain details
+  const searchDomainDetails = async () => {
+    if (!searchQuery.trim()) {
+      setError("Please enter a domain name.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuggestedDomains([]); // Clear previous suggestions
+
+    try {
+      const response = await axios.get(`${API_URL}/domains/check`, {
+        params: { domain: searchQuery },
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+
+      // Check if the domain is available or unavailable
+      if (response.data?.domain?.is_available === false) {
+        setCheckResult(null); // The domain is unavailable
+        setError('Domain Unavailable.');
+        setSuggestedDomains(response.data.suggestions || []); // Show suggestions if available
+      } else {
+        setCheckResult(response.data.domain);
+        setSuggestedDomains(response.data.suggestions || []);
+      }
+    } catch (err) {
+      setError('Failed to fetch domain data.');
+    }
+    setLoading(false);
   };
 
   return (
-    <LinearGradient
-      colors={["#0b0c10", "#0b0c10", "#1f2833"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#0b0c10", "#1f2833"]} style={styles.container}>
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -55,24 +96,56 @@ const SearchTab = () => {
           placeholderTextColor="#c5c6c7"
           value={searchQuery}
           onChangeText={setSearchQuery}
+          onSubmitEditing={searchDomainDetails}
+          returnKeyType="search"
         />
-        <br></br>
-        <FlatList
-          data={filteredDomains}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DomainCard item={item} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={handleRefresh}
-              tintColor="white"
-            />
-          }
-          ListEmptyComponent={
-            !loading && <Text style={styles.emptyText}>No domains found</Text>
-          }
-        />
+
+        <TouchableOpacity style={styles.searchButton} onPress={searchDomainDetails}>
+          <Text style={styles.buttonText}>Search</Text>
+        </TouchableOpacity>
       </View>
+
+      {loading && <ActivityIndicator size="large" color="#66fcf1" />}
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
+
+      {checkResult && !loading && !error && (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>Searched Domain:</Text>
+          <DomainCard item={checkResult} />
+        </View>
+      )}
+
+      {checkResult === null && error === 'Domain Unavailable.' && (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>Domain Unavailable:</Text>
+          <Text style={styles.errorText}>Unfortunately, the domain you searched for is unavailable.</Text>
+        </View>
+      )}
+
+      {suggestedDomains.length > 0 && !loading && (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>Suggested Domains:</Text>
+          <FlatList
+            data={suggestedDomains}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => <DomainCard item={item} />}
+          />
+        </View>
+      )}
+
+      {trendingTlds.length > 0 && !loading && suggestedDomains.length === 0 && (
+        <View>
+          <Text style={styles.resultTitle}>Trending TLDs:</Text>
+          <FlatList
+            data={trendingTlds}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <Text style={styles.trendingText}>{item}</Text>
+            )}
+          />
+        </View>
+      )}
     </LinearGradient>
   );
 };
@@ -95,6 +168,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#1f2833",
     color: "#66fcf1",
+  },
+  searchButton: {
+    backgroundColor: "#66fcf1",
+    padding: 10,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: "#0b0c10",
+    fontWeight: "bold",
   },
   domainCard: {
     backgroundColor: "#0b0c10",
@@ -119,10 +202,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#45a29e",
   },
-  emptyText: {
-    textAlign: "center",
-    color: "#c5c6c7",
-    marginTop: 10,
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+  },
+  resultContainer: {
+    marginTop: 20,
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#66fcf1',
+  },
+  trendingText: {
+    color: '#c5c6c7',
+    fontSize: 16,
+    marginBottom: 5,
   },
 });
 
