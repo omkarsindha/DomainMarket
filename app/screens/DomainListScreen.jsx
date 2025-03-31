@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient"; 
 import { Card } from "react-native-paper"; 
+import axios from 'axios';
 
 const placeholderDomains = [
   { id: "1", name: "trendy.io", price: "$1,500" },

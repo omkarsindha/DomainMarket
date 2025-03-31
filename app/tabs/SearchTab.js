@@ -7,10 +7,8 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
-  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome } from "@expo/vector-icons";
 
 const placeholderDomains = [
   { id: "1", name: "trendy.io", price: "$1,500" },
@@ -23,31 +21,16 @@ const placeholderDomains = [
   { id: "8", name: "web3explore.io", price: "$3,000" },
 ];
 
-const SearchTab = ({ navigation }) => {
+const DomainCard = ({ item }) => (
+  <View style={styles.domainCard}>
+    <Text style={styles.domainName}>{item.name}</Text>
+    <Text style={styles.salePrice}>{item.price}</Text>
+  </View>
+);
+
+const SearchTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  const toggleFavorite = (domain) => {
-    setFavorites((prevFavorites) => {
-      const isAlreadyFavorite = prevFavorites.some(
-        (item) => item.id === domain.id
-      );
-
-      if (isAlreadyFavorite) {
-        return prevFavorites.filter((item) => item.id !== domain.id);
-      } else {
-        Alert.alert("Success", "Added to Favorites!");
-        return [...prevFavorites, domain];
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (favorites.length > 0) {
-      navigation.navigate("Favorites", { favorites });
-    }
-  }, [favorites]);
 
   const filteredDomains = placeholderDomains.filter((domain) =>
     domain.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -55,9 +38,28 @@ const SearchTab = ({ navigation }) => {
 
   const handleRefresh = () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    setError(null);
+    setSuggestedDomains([]); // Clear previous suggestions
+
+    try {
+      const response = await axios.get(`${API_URL}/domains/check`, {
+        params: { domain: searchQuery },
+        headers: { Authorization: `Bearer ${getToken()}` }
+      });
+
+      // Check if the domain is available or unavailable
+      if (response.data?.domain?.is_available === false) {
+        setCheckResult(null); // The domain is unavailable
+        setError('Domain Unavailable.');
+        setSuggestedDomains(response.data.suggestions || []); // Show suggestions if available
+      } else {
+        setCheckResult(response.data.domain);
+        setSuggestedDomains(response.data.suggestions || []);
+      }
+    } catch (err) {
+      setError('Failed to fetch domain data.');
+    }
+    setLoading(false);
   };
 
   const DomainCard = ({ item }) => {
@@ -81,10 +83,7 @@ const SearchTab = ({ navigation }) => {
   };
 
   return (
-    <LinearGradient
-      colors={["#0b0c10", "#0b0c10", "#1f2833"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#0b0c10", "#1f2833"]} style={styles.container}>
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -92,7 +91,10 @@ const SearchTab = ({ navigation }) => {
           placeholderTextColor="#c5c6c7"
           value={searchQuery}
           onChangeText={setSearchQuery}
+          onSubmitEditing={searchDomainDetails}
+          returnKeyType="search"
         />
+        <br></br>
         <FlatList
           data={filteredDomains}
           keyExtractor={(item) => item.id}
@@ -131,6 +133,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f2833",
     color: "#66fcf1",
   },
+  searchButton: {
+    backgroundColor: "#66fcf1",
+    padding: 10,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: "#0b0c10",
+    fontWeight: "bold",
+  },
   domainCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -160,10 +172,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#45a29e",
   },
-  emptyText: {
-    textAlign: "center",
-    color: "#c5c6c7",
-    marginTop: 10,
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+  },
+  resultContainer: {
+    marginTop: 20,
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#66fcf1',
+  },
+  trendingText: {
+    color: '#c5c6c7',
+    fontSize: 16,
+    marginBottom: 5,
   },
   favoritesButton: {
     backgroundColor: "#66fcf1",
