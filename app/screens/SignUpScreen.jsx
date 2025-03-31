@@ -18,6 +18,7 @@ const SignUpScreen = ({ navigation }) => {
 
   const handleSignUp = () => {
     console.log('Signing up with:', username, email, password);
+    navigation.replace('HomeTab');
   };
 
   return (

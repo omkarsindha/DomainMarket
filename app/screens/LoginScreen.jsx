@@ -17,6 +17,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = () => {
     console.log('Logging in with:', email, password);
+    navigation.replace('HomeTab');
   };
 
   return (

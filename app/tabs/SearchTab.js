@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   StyleSheet,
   FlatList,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { FontAwesome } from "@expo/vector-icons";
 
 const placeholderDomains = [
   { id: "1", name: "trendy.io", price: "$1,500" },
@@ -21,16 +23,31 @@ const placeholderDomains = [
   { id: "8", name: "web3explore.io", price: "$3,000" },
 ];
 
-const DomainCard = ({ item }) => (
-  <View style={styles.domainCard}>
-    <Text style={styles.domainName}>{item.name}</Text>
-    <Text style={styles.salePrice}>{item.price}</Text>
-  </View>
-);
-
-const SearchTab = () => {
+const SearchTab = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const toggleFavorite = (domain) => {
+    setFavorites((prevFavorites) => {
+      const isAlreadyFavorite = prevFavorites.some(
+        (item) => item.id === domain.id
+      );
+
+      if (isAlreadyFavorite) {
+        return prevFavorites.filter((item) => item.id !== domain.id);
+      } else {
+        Alert.alert("Success", "Added to Favorites!");
+        return [...prevFavorites, domain];
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (favorites.length > 0) {
+      navigation.navigate("Favorites", { favorites });
+    }
+  }, [favorites]);
 
   const filteredDomains = placeholderDomains.filter((domain) =>
     domain.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -41,6 +58,26 @@ const SearchTab = () => {
     setTimeout(() => {
       setLoading(false);
     }, 1500);
+  };
+
+  const DomainCard = ({ item }) => {
+    const isFavorite = favorites.some((fav) => fav.id === item.id);
+
+    return (
+      <View style={styles.domainCard}>
+        <View style={styles.domainInfo}>
+          <Text style={styles.domainName}>{item.name}</Text>
+          <Text style={styles.salePrice}>{item.price}</Text>
+        </View>
+        <TouchableOpacity onPress={() => toggleFavorite(item)}>
+          <FontAwesome
+            name={isFavorite ? "heart" : "heart-o"}
+            size={24}
+            color={isFavorite ? "red" : "white"}
+          />
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
@@ -56,7 +93,6 @@ const SearchTab = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
-        <br></br>
         <FlatList
           data={filteredDomains}
           keyExtractor={(item) => item.id}
@@ -85,7 +121,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     marginVertical: 10,
     paddingHorizontal: 10,
-    paddingLeft: 6,
   },
   searchInput: {
     borderWidth: 2,
@@ -97,6 +132,9 @@ const styles = StyleSheet.create({
     color: "#66fcf1",
   },
   domainCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#0b0c10",
     borderRadius: 12,
     padding: 10,
@@ -108,6 +146,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
+  },
+  domainInfo: {
+    flexDirection: "column",
   },
   domainName: {
     fontSize: 14,
@@ -123,6 +164,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#c5c6c7",
     marginTop: 10,
+  },
+  favoritesButton: {
+    backgroundColor: "#66fcf1",
+    padding: 10,
+    marginTop: 20,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  favoritesButtonText: {
+    color: "#0b0c10",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 
