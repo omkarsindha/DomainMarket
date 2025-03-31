@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import axios from "axios";
 
 const placeholderDomains = [
   { id: "1", name: "trendy.io", price: "$1,500" },
@@ -31,55 +32,40 @@ const DomainCard = ({ item }) => (
 const SearchTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [suggestedDomains, setSuggestedDomains] = useState([]);
+  const [error, setError] = useState(null);
 
   const filteredDomains = placeholderDomains.filter((domain) =>
     domain.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRefresh = () => {
+  const searchDomainDetails = async () => {
     setLoading(true);
     setError(null);
-    setSuggestedDomains([]); // Clear previous suggestions
+    setSuggestedDomains([]);
 
     try {
       const response = await axios.get(`${API_URL}/domains/check`, {
         params: { domain: searchQuery },
-        headers: { Authorization: `Bearer ${getToken()}` }
+        headers: { Authorization: `Bearer ${getToken()}` },
       });
 
-      // Check if the domain is available or unavailable
       if (response.data?.domain?.is_available === false) {
-        setCheckResult(null); // The domain is unavailable
-        setError('Domain Unavailable.');
-        setSuggestedDomains(response.data.suggestions || []); // Show suggestions if available
+        setSuggestedDomains(response.data.suggestions || []);
+        setError("Domain Unavailable.");
       } else {
-        setCheckResult(response.data.domain);
         setSuggestedDomains(response.data.suggestions || []);
       }
     } catch (err) {
-      setError('Failed to fetch domain data.');
+      setError("Failed to fetch domain data.");
     }
     setLoading(false);
   };
 
-  const DomainCard = ({ item }) => {
-    const isFavorite = favorites.some((fav) => fav.id === item.id);
-
-    return (
-      <View style={styles.domainCard}>
-        <View style={styles.domainInfo}>
-          <Text style={styles.domainName}>{item.name}</Text>
-          <Text style={styles.salePrice}>{item.price}</Text>
-        </View>
-        <TouchableOpacity onPress={() => toggleFavorite(item)}>
-          <FontAwesome
-            name={isFavorite ? "heart" : "heart-o"}
-            size={24}
-            color={isFavorite ? "red" : "white"}
-          />
-        </TouchableOpacity>
-      </View>
-    );
+  const handleRefresh = async () => {
+    setLoading(true);
+    await searchDomainDetails();
+    setLoading(false);
   };
 
   return (
@@ -91,10 +77,9 @@ const SearchTab = () => {
           placeholderTextColor="#c5c6c7"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onSubmitEditing={searchDomainDetails}
+          onSubmitEditing={searchDomainDetails} // Calls the searchDomainDetails function
           returnKeyType="search"
         />
-        <br></br>
         <FlatList
           data={filteredDomains}
           keyExtractor={(item) => item.id}
@@ -133,16 +118,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f2833",
     color: "#66fcf1",
   },
-  searchButton: {
-    backgroundColor: "#66fcf1",
-    padding: 10,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  buttonText: {
-    color: "#0b0c10",
-    fontWeight: "bold",
-  },
   domainCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -159,9 +134,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  domainInfo: {
-    flexDirection: "column",
-  },
   domainName: {
     fontSize: 14,
     fontWeight: "bold",
@@ -172,35 +144,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#45a29e",
   },
-  errorText: {
-    color: 'red',
-    marginBottom: 10,
-  },
-  resultContainer: {
+  emptyText: {
+    color: "#c5c6c7",
+    textAlign: "center",
     marginTop: 20,
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#66fcf1',
-  },
-  trendingText: {
-    color: '#c5c6c7',
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  favoritesButton: {
-    backgroundColor: "#66fcf1",
-    padding: 10,
-    marginTop: 20,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  favoritesButtonText: {
-    color: "#0b0c10",
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });
 
