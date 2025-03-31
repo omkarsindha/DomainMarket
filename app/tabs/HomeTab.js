@@ -9,51 +9,16 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Footer from "../Components/Footer";
-const HomeScreen = ({ navigation }) => {
+const HomeTab = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState("domain");
 
   return (
     <LinearGradient
       colors={["#0b0c10", "#0b0c10", "#1f2833"]}
       style={styles.container}
-    >
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search domains..."
-          placeholderTextColor="#c5c6c7"
-        />
-      </View>
-
-      {/* ScrollView for domain cards
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
-        style={styles.scrollContainer}
-      >
-        {domainDeals.map((domain, index) => (
-          <View key={index} style={styles.domainCard}>
-            <Text style={styles.domainName}>{domain.name}</Text>
-            <View style={styles.priceContainer}>
-              <Text style={styles.originalPrice}>${domain.originalPrice}</Text> 
-              <Text style={styles.salePrice}>${domain.salePrice}</Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView> */}
-    </LinearGradient>
+    ></LinearGradient>
   );
 };
-
-// const domainDeals = [
-//   { name: "TechDomain.com", originalPrice: 199, salePrice: 99 },
-//   { name: "ShopBest.com", originalPrice: 149, salePrice: 79 },
-//   { name: "NextGenAI.io", originalPrice: 299, salePrice: 149 },
-//   { name: "CloudHub.net", originalPrice: 189, salePrice: 89 },
-//   { name: "CryptoWorld.xyz", originalPrice: 399, salePrice: 199 },
-//   { name: "EcomGiant.biz", originalPrice: 249, salePrice: 125 },
-//   { name: "AIRevolution.io", originalPrice: 499, salePrice: 250 },
-// ];
 
 const styles = StyleSheet.create({
   container: {
@@ -114,4 +79,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HomeScreen;
+export default HomeTab;
