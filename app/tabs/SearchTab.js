@@ -32,7 +32,7 @@ const DomainCard = ({ item }) => {
       navigation.navigate("Favorites", { favorites: [...favorites, item] });
     } else {
       const updatedFavorites = favorites.filter((fav) => fav.id !== item.id);
-      navigation.navigate("Favorites", { favorites: updatedFavorites });
+      // navigation.navigate("Favorites", { favorites: updatedFavorites });
     }
   };
 
