@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,65 +6,102 @@ import {
   TextInput,
   StyleSheet,
   FlatList,
-  RefreshControl,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import axios from "axios";
+import { useNavigation } from "@react-navigation/native";
+import FontAwesome from "react-native-vector-icons/FontAwesome";
 
-const placeholderDomains = [
-  { id: "1", name: "trendy.io", price: "$1,500" },
-  { id: "2", name: "startup.net", price: "$2,800" },
-  { id: "3", name: "nextbigthing.com", price: "$3,200" },
-  { id: "4", name: "futuretech.ai", price: "$1,900" },
-  { id: "5", name: "fastmoney.xyz", price: "$900" },
-  { id: "6", name: "businessgrowth.co", price: "$1,200" },
-  { id: "7", name: "investpro.com", price: "$4,500" },
-  { id: "8", name: "web3explore.io", price: "$3,000" },
-];
+const API_URL = "http://localhost:8000";
 
-const DomainCard = ({ item }) => (
-  <View style={styles.domainCard}>
-    <Text style={styles.domainName}>{item.name}</Text>
-    <Text style={styles.salePrice}>{item.price}</Text>
-  </View>
-);
+const getToken = () => {
+  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyYW1uaWsiLCJleHAiOjE3NDM0Nzg2NTJ9.7O5wml5lEykd6lZ2Dy7g9D8Amnru2fov2-bBD5H8aOQ";
+};
+
+const DomainCard = ({ item }) => {
+  const [isFavourite, setIsFavourite] = useState(false);
+  const navigation = useNavigation();
+
+  const toggleFavourite = () => {
+    setIsFavourite(!isFavourite);
+    if (!isFavourite) {
+      navigation.navigate("Favorites");
+    }
+  };
+
+  return (
+    <View style={styles.domainCard}>
+      <View style={styles.domainHeader}>
+        <Text style={styles.domainName}>{item.domain}</Text>
+        <TouchableOpacity onPress={toggleFavourite}>
+          <FontAwesome
+            name={isFavourite ? "heart" : "heart-o"}
+            size={20}
+            color={isFavourite ? "red" : "#c5c6c7"}
+          />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.salePrice}>Regular Price: ${item.regular_price}</Text>
+      <Text style={styles.salePrice}>Sale Price: ${item.sale_price}</Text>
+      <Text style={styles.salePrice}>
+        Discount: {item.sale_percentage}% off
+      </Text>
+    </View>
+  );
+};
 
 const SearchTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [checkResult, setCheckResult] = useState(null);
+  const [trendingTlds, setTrendingTlds] = useState([]);
   const [suggestedDomains, setSuggestedDomains] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const filteredDomains = placeholderDomains.filter((domain) =>
-    domain.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchTrendingTlds();
+  }, []);
+
+  const fetchTrendingTlds = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`${API_URL}/domains/trending_tlds`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setTrendingTlds(response.data || []);
+    } catch (err) {
+      setError("Failed to fetch trending TLDs.");
+    }
+    setLoading(false);
+  };
 
   const searchDomainDetails = async () => {
+    if (!searchQuery.trim()) {
+      setError("Please enter a domain name.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuggestedDomains([]);
-
     try {
       const response = await axios.get(`${API_URL}/domains/check`, {
         params: { domain: searchQuery },
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-
       if (response.data?.domain?.is_available === false) {
-        setSuggestedDomains(response.data.suggestions || []);
+        setCheckResult(null);
         setError("Domain Unavailable.");
+        setSuggestedDomains(response.data.suggestions || []);
       } else {
+        setCheckResult(response.data.domain);
         setSuggestedDomains(response.data.suggestions || []);
       }
     } catch (err) {
       setError("Failed to fetch domain data.");
     }
-    setLoading(false);
-  };
-
-  const handleRefresh = async () => {
-    setLoading(true);
-    await searchDomainDetails();
     setLoading(false);
   };
 
@@ -77,39 +114,59 @@ const SearchTab = () => {
           placeholderTextColor="#c5c6c7"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onSubmitEditing={searchDomainDetails} // Calls the searchDomainDetails function
+          onSubmitEditing={searchDomainDetails}
           returnKeyType="search"
         />
-        <FlatList
-          data={filteredDomains}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DomainCard item={item} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={handleRefresh}
-              tintColor="white"
-            />
-          }
-          ListEmptyComponent={
-            !loading && <Text style={styles.emptyText}>No domains found</Text>
-          }
-        />
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={searchDomainDetails}
+        >
+          <Text style={styles.buttonText}>Search</Text>
+        </TouchableOpacity>
       </View>
+      {loading && <ActivityIndicator size="large" color="#66fcf1" />}
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      <ScrollView>
+        {checkResult && !loading && !error && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultTitle}>Searched Domain:</Text>
+            <DomainCard item={checkResult} />
+          </View>
+        )}
+        {checkResult === null && error === "Domain Unavailable." && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultTitle}>Domain Unavailable:</Text>
+            <Text style={styles.errorText}>
+              Unfortunately, the domain you searched for is unavailable.
+            </Text>
+          </View>
+        )}
+        {suggestedDomains.length > 0 && !loading && (
+          <View style={styles.resultContainer}>
+            <Text style={styles.resultTitle}>Suggested Domains:</Text>
+            <FlatList
+              data={suggestedDomains}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => <DomainCard item={item} />}
+            />
+          </View>
+        )}
+      </ScrollView>
     </LinearGradient>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 10,
   },
   searchContainer: {
-    marginVertical: 10,
-    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
   },
   searchInput: {
+    flex: 1,
     borderWidth: 2,
     borderColor: "#66fcf1",
     borderRadius: 8,
@@ -118,10 +175,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#1f2833",
     color: "#66fcf1",
   },
+  searchButton: {
+    backgroundColor: "#66fcf1",
+    padding: 10,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  buttonText: {
+    color: "#0b0c10",
+    fontWeight: "bold",
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 10,
+  },
+  resultContainer: {
+    marginTop: 20,
+  },
+  resultTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#66fcf1",
+  },
   domainCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     backgroundColor: "#0b0c10",
     borderRadius: 12,
     padding: 10,
@@ -144,10 +221,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#45a29e",
   },
-  emptyText: {
-    color: "#c5c6c7",
-    textAlign: "center",
-    marginTop: 20,
+  domainHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 });
 
