@@ -8,19 +8,17 @@ import {
   FlatList,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import axios from "axios";
 import { useNavigation } from "@react-navigation/native";
 import FontAwesome from "react-native-vector-icons/FontAwesome";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_URL = "http://localhost:8000";
 
-const getToken = () => {
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyYW1uaWsiLCJleHAiOjE3NDcwNzg2NzV9.ZuCVk3XSMFjLljArJ6OeNLxqSu4iS_0SRpBbUTet0gM";
-};
-
-const DomainCard = ({ item }) => {
+const DomainCard = ({ item, onPress }) => {
   const [favorites, setFavorites] = useState([]);
   const [isFavourite, setIsFavourite] = useState(false);
   const navigation = useNavigation();
@@ -37,7 +35,10 @@ const DomainCard = ({ item }) => {
   };
 
   return (
-    <View style={styles.domainCard}>
+    <TouchableOpacity
+      style={styles.domainCard}
+      onPress={() => onPress && onPress(item)}
+    >
       <View style={styles.domainHeader}>
         <Text style={styles.domainName}>{item.domain}</Text>
         <TouchableOpacity onPress={toggleFavourite}>
@@ -48,12 +49,11 @@ const DomainCard = ({ item }) => {
           />
         </TouchableOpacity>
       </View>
-      <Text style={styles.salePrice}>Regular Price: ${item.regular_price}</Text>
-      <Text style={styles.salePrice}>Sale Price: ${item.sale_price}</Text>
-      <Text style={styles.salePrice}>
-        Discount: {item.sale_percentage}% off
+      <Text style={styles.domainPrice}>Price: ${item.price}</Text>
+      <Text style={styles.domainDuration}>
+        Min Duration: {item.min_duration} {item.min_duration === 1 ? "year" : "years"}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -64,38 +64,84 @@ const SearchTab = () => {
   const [suggestedDomains, setSuggestedDomains] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [token, setToken] = useState(null);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    fetchTrendingTlds();
-  }, []);
+    const getTokenFromStorage = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('access_token');
+        if (storedToken) {
+          setToken(storedToken);
+        } else {
+          Alert.alert(
+            "Authentication Required",
+            "Please login to access domain search",
+            [
+              {
+                text: "Login",
+                onPress: () => navigation.navigate('Login')
+              }
+            ]
+          );
+        }
+      } catch (err) {
+        console.error("Failed to get token from storage:", err);
+        setError("Authentication error. Please login again.");
+      }
+    };
+
+    getTokenFromStorage();
+  }, [navigation]);
+
+  useEffect(() => {
+    if (token) {
+      fetchTrendingTlds();
+    }
+  }, [token]);
 
   const fetchTrendingTlds = async () => {
+    if (!token) return;
+
     setLoading(true);
     setError(null);
     try {
       const response = await axios.get(`${API_URL}/domains/trending_tlds`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setTrendingTlds(response.data || []);
     } catch (err) {
-      setError("Failed to fetch trending TLDs.");
+      console.error("Error fetching trending TLDs:", err);
+      if (err.response && err.response.status === 401) {
+        handleAuthError();
+      } else {
+        setError("Failed to fetch trending TLDs.");
+      }
     }
     setLoading(false);
   };
 
   const searchDomainDetails = async () => {
+    if (!token) {
+      handleAuthError();
+      return;
+    }
+
     if (!searchQuery.trim()) {
       setError("Please enter a domain name.");
       return;
     }
+
     setLoading(true);
     setError(null);
     setSuggestedDomains([]);
+
     try {
       const response = await axios.get(`${API_URL}/domains/check`, {
         params: { domain: searchQuery },
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
+
       if (response.data?.domain?.is_available === false) {
         setCheckResult(null);
         setError("Domain Unavailable.");
@@ -105,9 +151,34 @@ const SearchTab = () => {
         setSuggestedDomains(response.data.suggestions || []);
       }
     } catch (err) {
-      setError("Failed to fetch domain data.");
+      console.error("Error searching domain:", err);
+      if (err.response && err.response.status === 401) {
+        handleAuthError();
+      } else {
+        setError("Failed to fetch domain data.");
+      }
     }
     setLoading(false);
+  };
+
+  const handleAuthError = async () => {
+    await AsyncStorage.removeItem('access_token');
+    setToken(null);
+
+    Alert.alert(
+      "Session Expired",
+      "Your session has expired. Please login again.",
+      [
+        {
+          text: "Login",
+          onPress: () => navigation.navigate('Login')
+        }
+      ]
+    );
+  };
+
+  const handleDomainSelect = (domain) => {
+    navigation.navigate('DomainBuy', { domain });
   };
 
   return (
@@ -135,7 +206,7 @@ const SearchTab = () => {
         {checkResult && !loading && !error && (
           <View style={styles.resultContainer}>
             <Text style={styles.resultTitle}>Searched Domain:</Text>
-            <DomainCard item={checkResult} />
+            <DomainCard item={checkResult} onPress={handleDomainSelect} />
           </View>
         )}
         {checkResult === null && error === "Domain Unavailable." && (
@@ -152,7 +223,7 @@ const SearchTab = () => {
             <FlatList
               data={suggestedDomains}
               keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => <DomainCard item={item} />}
+              renderItem={({ item }) => <DomainCard item={item} onPress={handleDomainSelect} />}
             />
           </View>
         )}
@@ -160,6 +231,7 @@ const SearchTab = () => {
     </LinearGradient>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -216,20 +288,27 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  domainHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   domainName: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#c5c6c7",
   },
-  salePrice: {
+  domainPrice: {
     fontSize: 12,
     fontWeight: "bold",
     color: "#45a29e",
+    marginTop: 5,
   },
-  domainHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  domainDuration: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#45a29e",
+    marginTop: 2,
   },
 });
 
