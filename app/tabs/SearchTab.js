@@ -17,17 +17,22 @@ import FontAwesome from "react-native-vector-icons/FontAwesome";
 const API_URL = "http://localhost:8000";
 
 const getToken = () => {
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyYW1uaWsiLCJleHAiOjE3NDM0Nzg2NTJ9.7O5wml5lEykd6lZ2Dy7g9D8Amnru2fov2-bBD5H8aOQ";
+  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJyYW1uaWsiLCJleHAiOjE3NDcwNzg2NzV9.ZuCVk3XSMFjLljArJ6OeNLxqSu4iS_0SRpBbUTet0gM";
 };
 
 const DomainCard = ({ item }) => {
+  const [favorites, setFavorites] = useState([]);
   const [isFavourite, setIsFavourite] = useState(false);
   const navigation = useNavigation();
 
   const toggleFavourite = () => {
     setIsFavourite(!isFavourite);
+
     if (!isFavourite) {
-      navigation.navigate("Favorites");
+      navigation.navigate("Favorites", { favorites: [...favorites, item] });
+    } else {
+      const updatedFavorites = favorites.filter((fav) => fav.id !== item.id);
+      navigation.navigate("Favorites", { favorites: updatedFavorites });
     }
   };
 
