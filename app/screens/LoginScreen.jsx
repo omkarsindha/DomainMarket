@@ -9,14 +9,48 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
-    console.log('Logging in with:', email, password);
+  const handleLogin = async () => {
+    console.log('Logging in with:', username, password);
+
+    try {
+      const response = await fetch('http://10.0.0.138:8000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password,
+        }),
+      });
+      
+
+      const data = await response.json();
+
+      if (response.ok) {
+        const token = data.access_token;
+
+        // Store the token securely
+        await SecureStore.setItemAsync('user_token', token);
+
+        console.log('Logged in successfully, token:', token);
+
+        // Navigate to the Home or Search page after login
+        //navigation.navigate('Home');
+      } else {
+        alert('Invalid credentials');
+      }
+    } catch (error) {
+     
+      alert('An error occurred. Please try again.');
+    }
   };
 
   return (
@@ -30,17 +64,17 @@ const LoginScreen = ({ navigation }) => {
         resizeMode="contain"
       />
 
+      {/* Ensure all text elements are inside <Text> components */}
       <Text style={styles.title}>Welcome Back</Text>
       <Text style={styles.subtitle}>Sign in to continue</Text>
 
       <View style={styles.inputContainer}>
-        <Ionicons name="mail-outline" size={20} color="#66fcf1" style={styles.icon} />
+        <Ionicons name="person-outline" size={20} color="#66fcf1" style={styles.icon} />
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
+          placeholder="Username"
+          value={username}
+          onChangeText={setUsername}
           autoCapitalize="none"
           placeholderTextColor="#c5c6c7"
         />

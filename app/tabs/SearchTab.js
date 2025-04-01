@@ -11,49 +11,49 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import axios from 'axios';
 
-const API_URL = "http://10.48.14.13:8000"; // Your backend API URL
+const API_URL = "http://10.0.0.138:8000"; // Your backend API URL
 
 // A function to manually provide the token
 const getToken = () => {
-  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJEZXZhcnNoIiwiZXhwIjoxNzQzMjkyNzA2fQ.BsBJ_4d1Crnrtlvq5Ryroxerfh1mFrzS6lZ_fdTcxX0'; // Replace with your token
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJEZXZhcnNoMTEiLCJleHAiOjE3NDM0NzU2MjF9.82RcIEopq7pUWwRs1o9X0wOxwl65w0jOJDpJyeHfrVg'; // Replace with your token
 };
 
 const DomainCard = ({ item }) => (
   <View style={styles.domainCard}>
     <Text style={styles.domainName}>{item.domain}</Text>
-    <Text style={styles.salePrice}>Regular Price: ${item.regular_price}</Text>
-    <Text style={styles.salePrice}>Sale Price: ${item.sale_price}</Text>
-    <Text style={styles.salePrice}>Discount: {item.sale_percentage}% off</Text>
+    <Text style={styles.salePrice}>Regular Price: ${item.price}</Text>
+    <Text style={styles.salePrice}>Minimun Duration: {item.min_duration} Year</Text>
+    {/* <Text style={styles.salePrice}>Discount: {item.sale_percentage}% off</Text> */}
   </View>
 );
 
 const SearchTab = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [checkResult, setCheckResult] = useState(null);
-  const [trendingTlds, setTrendingTlds] = useState([]);
+  //const [trendingTlds, setTrendingTlds] = useState([]);
   const [suggestedDomains, setSuggestedDomains] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchTrendingTlds();
-  }, []);
+  // useEffect(() => {
+  //   fetchTrendingTlds();
+  // }, []);
 
   // Fetch trending TLDs
-  const fetchTrendingTlds = async () => {
-    setLoading(true);
-    setError(null);
+  // const fetchTrendingTlds = async () => {
+  //   setLoading(true);
+  //   setError(null);
 
-    try {
-      const response = await axios.get(`${API_URL}/domains/trending_tlds`, {
-        headers: { Authorization: `Bearer ${getToken()}` }
-      });
-      setTrendingTlds(response.data || []);
-    } catch (err) {
-      setError('Failed to fetch trending TLDs.');
-    }
-    setLoading(false);
-  };
+  //   try {
+  //     const response = await axios.get(`${API_URL}/domains/trending_tlds`, {
+  //       headers: { Authorization: `Bearer ${getToken()}` }
+  //     });
+  //     setTrendingTlds(response.data || []);
+  //   } catch (err) {
+  //     setError('Failed to fetch trending TLDs.');
+  //   }
+  //   setLoading(false);
+  // };
 
   // Search domain details
   const searchDomainDetails = async () => {
@@ -134,7 +134,7 @@ const SearchTab = () => {
         </View>
       )}
 
-      {trendingTlds.length > 0 && !loading && suggestedDomains.length === 0 && (
+      {/* {trendingTlds.length > 0 && !loading && suggestedDomains.length === 0 && (
         <View>
           <Text style={styles.resultTitle}>Trending TLDs:</Text>
           <FlatList
@@ -145,7 +145,7 @@ const SearchTab = () => {
             )}
           />
         </View>
-      )}
+      )} */}
     </LinearGradient>
   );
 };

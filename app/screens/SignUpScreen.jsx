@@ -16,8 +16,33 @@ const SignUpScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     console.log('Signing up with:', username, email, password);
+
+    try {
+      const response = await fetch('http://10.0.0.138:8000/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('User registered successfully:', data.message);
+        alert('User registered successfully! Please log in.');
+
+        // Navigate to login screen after successful registration
+        //navigation.navigate('Login');
+      } else {
+        alert(data.detail || 'Failed to register. Please try again.');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      alert('An error occurred. Please try again.');
+    }
   };
 
   return (
