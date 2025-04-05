@@ -67,7 +67,7 @@ const SignUpScreen = ({ navigation }) => {
       await AsyncStorage.setItem('access_token', data.access_token);
 
       console.log('Registration successful:', username);
-      navigation.replace('HomeTab');
+      navigation.replace('Login');
 
     } catch (error) {
       console.error('Registration error:', error);
